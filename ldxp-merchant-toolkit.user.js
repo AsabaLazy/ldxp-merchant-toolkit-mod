@@ -1,14 +1,14 @@
 // ==UserScript==
-// @name         链动小铺商家增强工具
-// @namespace    https://www.ldxp.cn/
-// @version      1.2.2
-// @description  货源广场增强搜索、店铺销量/保证金风控、热词与价格下钻、详情预览与一键对接；商品管理支持销量排序、批量改价改分类及复制报表。
+// @name         链动小铺商家增强工具·改
+// @namespace    https://github.com/AsabaLazy/ldxp-merchant-toolkit-mod
+// @version      1.2.3
+// @description  适配 wzyp.cn / ldxp.cn 商家后台：货源广场店铺总销与保证金风控、热词/价格区间下钻、详情抽屉安全预览、防风控限速与一键对接；商品管理支持销量排序、批量改价改分类及复制报表。
 // @author       AsabaLazy
 // @license      MIT
-// @homepageURL  https://github.com/AsabaLazy/ldxp-merchant-toolkit
-// @supportURL   https://github.com/AsabaLazy/ldxp-merchant-toolkit/issues
-// @updateURL    https://raw.githubusercontent.com/AsabaLazy/ldxp-merchant-toolkit/main/ldxp-merchant-toolkit.user.js
-// @downloadURL  https://raw.githubusercontent.com/AsabaLazy/ldxp-merchant-toolkit/main/ldxp-merchant-toolkit.user.js
+// @homepageURL  https://github.com/AsabaLazy/ldxp-merchant-toolkit-mod
+// @supportURL   https://github.com/AsabaLazy/ldxp-merchant-toolkit-mod/issues
+// @updateURL    https://raw.githubusercontent.com/AsabaLazy/ldxp-merchant-toolkit-mod/main/ldxp-merchant-toolkit.user.js
+// @downloadURL  https://raw.githubusercontent.com/AsabaLazy/ldxp-merchant-toolkit-mod/main/ldxp-merchant-toolkit.user.js
 // @match        https://wzyp.cn/merchant
 // @match        https://wzyp.cn/merchant/*
 // @match        https://*.wzyp.cn/merchant
