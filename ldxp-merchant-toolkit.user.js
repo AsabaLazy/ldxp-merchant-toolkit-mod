@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         链动小铺商家增强工具·改
 // @namespace    https://github.com/AsabaLazy/ldxp-merchant-toolkit-mod
-// @version      1.2.3
+// @version      1.2.4
 // @description  适配 wzyp.cn / ldxp.cn 商家后台：货源广场店铺总销与保证金风控、热词/价格区间下钻、详情抽屉安全预览、防风控限速与一键对接；商品管理支持销量排序、批量改价改分类及复制报表。
 // @author       AsabaLazy
 // @license      MIT
@@ -154,11 +154,21 @@
   }
 
   const TEST_FAST = typeof window !== "undefined" && Boolean(window.__LDXP_TEST_FAST__);
-  const MAX_REQ_PER_SEC = 3;
-  const MIN_GAP_MS = TEST_FAST ? 0 : 350;
-  const WINDOW_MS = 1050;
-  const HOST_QUIET_MS = TEST_FAST ? 0 : 700;
+  const MAX_REQ_PER_SEC = 2;
+  const MIN_GAP_MS = TEST_FAST ? 0 : 800;
+  const JITTER_MS = TEST_FAST ? 0 : 300;
+  const WINDOW_MS = 1200;
+  const MINUTE_WINDOW_MS = 60000;
+  const MAX_REQ_PER_MIN = 35;
+  const BURST_PAUSE_EVERY = 20;
+  const BURST_PAUSE_MS = TEST_FAST ? 0 : 4500;
+  const COOLDOWN_MS = TEST_FAST ? 0 : 120000;
+  const HOST_QUIET_MS = TEST_FAST ? 0 : 900;
   const recentRequestTimes = [];
+  const minuteRequestTimes = [];
+  let consecutiveScriptReqs = 0;
+  let cooldownUntil = 0;
+  let nextGapJitterMs = 0;
   let lastHostActivityAt = 0;
   let requestChain = Promise.resolve();
 
@@ -166,11 +176,34 @@
     return ms > 0 ? new Promise((resolve) => setTimeout(resolve, ms)) : Promise.resolve();
   }
 
-  function recordRequestTime(now = Date.now()) {
+  function recordRequestTime(now = Date.now(), isScript = false) {
     recentRequestTimes.push(now);
+    minuteRequestTimes.push(now);
     while (recentRequestTimes.length && now - recentRequestTimes[0] > WINDOW_MS) {
       recentRequestTimes.shift();
     }
+    while (minuteRequestTimes.length && now - minuteRequestTimes[0] > MINUTE_WINDOW_MS) {
+      minuteRequestTimes.shift();
+    }
+    if (isScript) {
+      consecutiveScriptReqs += 1;
+      nextGapJitterMs = JITTER_MS > 0 ? Math.floor(Math.random() * JITTER_MS) : 0;
+    }
+  }
+
+  function createRateLimitError(statusLabel) {
+    const remainSec = Math.max(1, Math.ceil((cooldownUntil - Date.now()) / 1000));
+    const err = new Error(
+      `触发站点高频保护（${statusLabel}），已进入 ${remainSec} 秒安全冷却并停止后续请求；如仍无法访问请重拨宽带或切换节点`,
+    );
+    err.rateLimited = true;
+    return err;
+  }
+
+  function tripRateLimitBreaker(statusLabel) {
+    cooldownUntil = Date.now() + COOLDOWN_MS;
+    consecutiveScriptReqs = 0;
+    return createRateLimitError(statusLabel);
   }
 
   function installHostTrafficObserver() {
@@ -181,7 +214,7 @@
         XMLHttpRequest.prototype.send = function (...args) {
           const now = Date.now();
           lastHostActivityAt = now;
-          recordRequestTime(now);
+          recordRequestTime(now, false);
           return origSend.apply(this, args);
         };
       }
@@ -196,11 +229,14 @@
   async function waitRequestSlot(shouldCancel, isBackground) {
     if (TEST_FAST) {
       if (shouldCancel?.()) return false;
-      recordRequestTime();
+      recordRequestTime(Date.now(), true);
       return true;
     }
+    if (consecutiveScriptReqs > 0 && consecutiveScriptReqs % BURST_PAUSE_EVERY === 0) {
+      await sleep(BURST_PAUSE_MS);
+    }
     while (true) {
-      if (shouldCancel?.()) return false;
+      if (shouldCancel?.() || Date.now() < cooldownUntil) return false;
       if (isBackground && typeof document !== "undefined" && document.hidden) {
         await sleep(350);
         continue;
@@ -209,16 +245,21 @@
       while (recentRequestTimes.length && now - recentRequestTimes[0] > WINDOW_MS) {
         recentRequestTimes.shift();
       }
+      while (minuteRequestTimes.length && now - minuteRequestTimes[0] > MINUTE_WINDOW_MS) {
+        minuteRequestTimes.shift();
+      }
       const lastAny = recentRequestTimes.length ? recentRequestTimes[recentRequestTimes.length - 1] : 0;
-      const gapWait = lastAny ? MIN_GAP_MS - (now - lastAny) : 0;
+      const gapWait = lastAny ? MIN_GAP_MS + nextGapJitterMs - (now - lastAny) : 0;
       const hostWait = isBackground && lastHostActivityAt ? HOST_QUIET_MS - (now - lastHostActivityAt) : 0;
-      const windowWait = recentRequestTimes.length >= MAX_REQ_PER_SEC ? WINDOW_MS - (now - recentRequestTimes[0]) + 25 : 0;
-      const wait = Math.max(gapWait, hostWait, windowWait);
+      const windowWait = recentRequestTimes.length >= MAX_REQ_PER_SEC ? WINDOW_MS - (now - recentRequestTimes[0]) + 50 : 0;
+      const minuteWait =
+        minuteRequestTimes.length >= MAX_REQ_PER_MIN ? MINUTE_WINDOW_MS - (now - minuteRequestTimes[0]) + 200 : 0;
+      const wait = Math.max(gapWait, hostWait, windowWait, minuteWait);
       if (wait <= 0) {
-        recordRequestTime(Date.now());
+        recordRequestTime(Date.now(), true);
         return true;
       }
-      await sleep(Math.min(wait, 200));
+      await sleep(Math.min(wait, 250));
     }
   }
 
@@ -234,28 +275,37 @@
     if (!isMerchant && !url.startsWith("/shopApi/")) {
       throw new Error("已阻止非站内接口请求");
     }
+    if (Date.now() < cooldownUntil) {
+      throw createRateLimitError("冷却保护中");
+    }
     const allowed = await acquireRequestSlot(options.shouldCancel, Boolean(options.background));
+    if (Date.now() < cooldownUntil) {
+      throw createRateLimitError("冷却保护中");
+    }
     if (!allowed) {
       const cancelled = new Error("请求已取消");
       cancelled.cancelled = true;
       throw cancelled;
     }
     const token = isMerchant ? getToken() : "";
-    const response = await fetch(url, {
-      method: "POST",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json, text/plain, */*",
-        ...(token ? { "Merchant-Token": token } : {}),
-      },
-      body: JSON.stringify(body || {}),
-    });
-    recordRequestTime(Date.now());
-    if (response.status === 520 || response.status === 429 || response.status === 503) {
-      const err = new Error(`触发站点高频保护（HTTP ${response.status}），已自动停止后续请求；请等待几分钟或切换网络/节点后重试`);
-      err.rateLimited = true;
-      throw err;
+    let response;
+    try {
+      response = await fetch(url, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json, text/plain, */*",
+          ...(token ? { "Merchant-Token": token } : {}),
+        },
+        body: JSON.stringify(body || {}),
+      });
+    } catch (netError) {
+      throw tripRateLimitBreaker("连接被源站重置/HTTP 444");
+    }
+    recordRequestTime(Date.now(), false);
+    if (response.status === 520 || response.status === 444 || response.status === 429 || response.status === 503) {
+      throw tripRateLimitBreaker(`HTTP ${response.status}`);
     }
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const result = await response.json();
@@ -1015,7 +1065,7 @@
             const candidates = [...groupItems]
               .filter((item) => extractGoodsKey(item))
               .sort((a, b) => Number(listedState(b) === true) - Number(listedState(a) === true))
-              .slice(0, 2);
+              .slice(0, 1);
             for (const sample of candidates) {
               try {
                 const goodsInfo = await postJson(
@@ -1077,7 +1127,7 @@
           scheduleSaveSessionCache();
           completed += 1;
           syncEnrichButton(true, `${completed}/${entries.length}`);
-          setPanelStatus(panel, `按 ≤3个/秒安全加载店铺资质与热销榜 ${completed}/${entries.length}...`);
+          setPanelStatus(panel, `按安全限速加载店铺资质与热销榜 ${completed}/${entries.length}...`);
           if (filters && completed % 3 === 0) refreshIncrementalView(items, filters);
         }
       } finally {
@@ -1120,7 +1170,7 @@
           scheduleSaveSessionCache();
           completed += 1;
           syncEnrichButton(true, `${completed}/${pending.length}`);
-          setPanelStatus(panel, `按 ≤3个/秒安全加载单品热度 ${completed}/${pending.length}...`);
+          setPanelStatus(panel, `按安全限速加载单品热度 ${completed}/${pending.length}...`);
           if (filters && completed % 3 === 0) refreshIncrementalView(baseMatched || items, filters);
         }
       } finally {
@@ -1607,7 +1657,7 @@
           goodsState.infoById.set(String(item.id), {});
         }
         completed += 1;
-        setPanelStatus(panel, `按 ≤3个/秒安全识别商品分类 ${completed}/${pending.length}...`);
+        setPanelStatus(panel, `按安全限速识别商品分类 ${completed}/${pending.length}...`);
         if (completed % 3 === 0) applyGoodsDisplay();
       }
       if (abortedError) notify(abortedError.message, "error");
@@ -1828,6 +1878,7 @@
 
       setBusy(button, true, "保存中...");
       let success = 0;
+      let rateLimitedError = null;
       const failures = [];
       for (let index = 0; index < items.length; index += 1) {
         const item = items[index];
@@ -1853,6 +1904,10 @@
           success += 1;
         } catch (error) {
           failures.push(`${item.name}：${error.message || error}`);
+          if (error?.rateLimited) {
+            rateLimitedError = error;
+            break;
+          }
         }
       }
       setBusy(button, false);
@@ -1862,7 +1917,9 @@
       } else {
         notify(`成功修改 ${success} 个商品`, "success");
       }
-      await loadGoods(body.querySelector('[data-goods-action="load"]'));
+      if (!rateLimitedError) {
+        await loadGoods(body.querySelector('[data-goods-action="load"]'));
+      }
     }
 
     async function buildReport(button) {
@@ -1873,6 +1930,7 @@
       }
       setBusy(button, true, "生成中...");
       const blocks = [];
+      let rateLimitedError = null;
       for (let index = 0; index < items.length; index += 1) {
         const item = items[index];
         setPanelStatus(panel, `正在获取链接 ${index + 1}/${items.length}...`);
@@ -1881,8 +1939,11 @@
           try {
             const data = await postJson(API.goodsLink, { id: item.id });
             link = safeUrl(data?.link || data?.short_link);
-          } catch (_) {
+          } catch (error) {
             link = "获取失败";
+            if (error?.rateLimited) {
+              rateLimitedError = error;
+            }
           }
         }
         blocks.push([
@@ -1891,6 +1952,10 @@
           `价格：${money(item.price)}`,
           `链接：${link}`,
         ].join("\n"));
+        if (rateLimitedError) {
+          notify(rateLimitedError.message, "error");
+          break;
+        }
       }
       const report = blocks.join("\n--------------------\n");
       reportModal.querySelector("[data-report-text]").value = report;
