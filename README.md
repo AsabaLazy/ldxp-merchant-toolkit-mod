@@ -21,18 +21,6 @@
 2. 点击 [直装链接（Raw）](https://raw.githubusercontent.com/AsabaLazy/ldxp-merchant-toolkit-mod/main/ldxp-merchant-toolkit.user.js)，或在仓库打开 [`ldxp-merchant-toolkit.user.js`](./ldxp-merchant-toolkit.user.js) 点击 Raw 安装。
 3. 登录链动小铺商家后台并刷新页面。
 
-## 适用页面
-
-- 货源广场：`https://wzyp.cn/merchant/my_parent/source_square`（兼容 `ldxp.cn`）
-- 商品管理：`https://wzyp.cn/merchant/goods/list?is_proxy=1`（兼容 `ldxp.cn`）
-
-批量修改会直接保存到店铺，首次使用建议仅勾选 1 个测试商品验证效果。
-
-## 隐私与安全
-
-- 脚本零外部依赖，仅请求当前域名（`wzyp.cn` / `ldxp.cn`）同源的 `/merchantApi/` 与 `/shopApi/` 接口，且仅对 `/merchantApi/` 携带 `Merchant-Token`，绝不向第三方发送令牌或业务数据。
-- 供货商富文本商品说明经浏览器原生 Sanitizer / DOM 白名单消毒后渲染，阻断脚本注入。
-
 ## 仓库与许可
 
 - GitHub：[AsabaLazy/ldxp-merchant-toolkit-mod](https://github.com/AsabaLazy/ldxp-merchant-toolkit-mod)
