@@ -1,12 +1,14 @@
 // ==UserScript==
 // @name         链动小铺商家增强工具
 // @namespace    https://www.ldxp.cn/
-// @version      1.2.1
+// @version      1.2.2
 // @description  货源广场增强搜索、店铺销量/保证金风控、热词与价格下钻、详情预览与一键对接；商品管理支持销量排序、批量改价改分类及复制报表。
-// @author       miku1130
+// @author       AsabaLazy
 // @license      MIT
-// @homepageURL  https://github.com/miku1130/ldxp-merchant-toolkit
-// @supportURL   https://github.com/miku1130/ldxp-merchant-toolkit/issues
+// @homepageURL  https://github.com/AsabaLazy/ldxp-merchant-toolkit
+// @supportURL   https://github.com/AsabaLazy/ldxp-merchant-toolkit/issues
+// @updateURL    https://raw.githubusercontent.com/AsabaLazy/ldxp-merchant-toolkit/main/ldxp-merchant-toolkit.user.js
+// @downloadURL  https://raw.githubusercontent.com/AsabaLazy/ldxp-merchant-toolkit/main/ldxp-merchant-toolkit.user.js
 // @match        https://wzyp.cn/merchant
 // @match        https://wzyp.cn/merchant/*
 // @match        https://*.wzyp.cn/merchant
@@ -369,8 +371,6 @@
         flex: 0 0 auto; background: #f8fafc; border-bottom: 1px solid #eaecf0; user-select: none;
       }
       .ldxp-toolkit-title { font-size: 16px; font-weight: 700; white-space: nowrap; }
-      .ldxp-toolkit-contact { color: #475467; font-size: 12px; white-space: nowrap; }
-      .ldxp-toolkit-contact strong { color: #165dff; }
       .ldxp-toolkit-status { flex: 1; min-width: 0; color: #667085; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .ldxp-toolkit-controls {
         display: grid; grid-template-columns: repeat(6,minmax(125px,1fr)); gap: 10px;
@@ -473,7 +473,6 @@
     panel.innerHTML = `
       <div class="ldxp-toolkit-head">
         <div class="ldxp-toolkit-title">${escapeHtml(title)}</div>
-        <div class="ldxp-toolkit-contact">QQ交流群：<strong>1076144676</strong></div>
         <div class="ldxp-toolkit-status">准备就绪</div>
         <button type="button" data-close>关闭</button>
       </div>

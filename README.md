@@ -2,8 +2,6 @@
 
 适用于链动小铺商家后台的 Tampermonkey / Violentmonkey 用户脚本。
 
-QQ 交流群：`1076144676`
-
 ## 功能
 
 - 货源广场增强搜索：支持价格、排除 0 元、指定商家、保证金/实名风控、是否上架、库存、对接状态及“仅店内热销”筛选；提供成本区间与标题热词点击下钻、详情抽屉安全预览（含富文本说明与商家资质）、表头点击排序（成本/单品热度/店铺总销/保证金），并可单个或批量一键对接。
@@ -16,13 +14,12 @@ QQ 交流群：`1076144676`
 ## 安装
 
 1. 安装 Tampermonkey 或 Violentmonkey。
-2. 从 [Greasy Fork 安装](https://greasyfork.org/zh-CN/scripts/587565-%E9%93%BE%E5%8A%A8%E5%B0%8F%E9%93%BA%E5%95%86%E5%AE%B6%E5%A2%9E%E5%BC%BA%E5%B7%A5%E5%85%B7)，或打开 [`ldxp-merchant-toolkit.user.js`](./ldxp-merchant-toolkit.user.js) 后点击 Raw 安装。
+2. 点击 [直装链接（Raw）](https://raw.githubusercontent.com/AsabaLazy/ldxp-merchant-toolkit/main/ldxp-merchant-toolkit.user.js)，或在仓库打开 [`ldxp-merchant-toolkit.user.js`](./ldxp-merchant-toolkit.user.js) 后点击 Raw 安装。
 3. 登录链动小铺商家后台并刷新页面。
 
-## 发布地址
+## 仓库地址
 
-- [GitHub](https://github.com/miku1130/ldxp-merchant-toolkit)
-- [Greasy Fork](https://greasyfork.org/zh-CN/scripts/587565-%E9%93%BE%E5%8A%A8%E5%B0%8F%E9%93%BA%E5%95%86%E5%AE%B6%E5%A2%9E%E5%BC%BA%E5%B7%A5%E5%85%B7)
+- [GitHub](https://github.com/AsabaLazy/ldxp-merchant-toolkit)
 
 ## 使用页面
 
